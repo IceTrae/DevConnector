@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../../models/User');
 const gravatar = require('gravatar');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 router.get('/', (req, res) => res.json({ msg: "Users works" }));
 
@@ -40,4 +41,36 @@ router.post('/register', (req, res) => {
         });
 });
 
+// @route   Get api/users/login
+// @desc    Allows a registered user to login / Returns Token
+// @access  Public
+router.post('/login', (req, res) => {
+    const email = req.body.email
+    const pwd = req.body.password
+    User
+        .findOne({ email })
+        .then(user => {
+            if (!user) {
+                return res.status(404).json({ email: 'User not found.' });
+            }
+
+            bcrypt
+                .compare(pwd, user.password)
+                .then(isMatch => {
+                    if (isMatch) {
+                        const payload = {
+                            id: user.id,
+                            name: user.name,
+                            avatar: user.avatar
+                        };
+                        const expireTime = 7200
+                        jwt.sign(payload, process.env.AUTH_SECRET, { expiresIn: expireTime }, (err, token) => {
+                            res.json({ access_token: token, token_type: 'Bearer', expires_in: expireTime });
+                        });
+                    } else {
+                        return res.status(403).json({ password: 'Password incorrect.' });
+                    }
+                });
+        });
+});
 module.exports = router;
