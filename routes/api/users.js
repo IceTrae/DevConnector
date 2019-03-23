@@ -6,17 +6,26 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 
+const registerValidation = require('../../validation/register');
+const loginValidation = require('../../validation/login');
+
 router.get('/', (req, res) => res.json({ msg: "Users works" }));
 
 // @route   Post api/users/register
 // @desc    Register a user
 // @access  Public
 router.post('/register', (req, res) => {
+    const { errors, isValid } = registerValidation(req.body);
+    if (!isValid) {
+        return res.status(400).json(errors);
+    }
+
     User
         .findOne({ email: req.body.email })
         .then(user => {
             if (user) {
-                return res.status(400).json({ email: 'Email already exists' });
+                errors.email = 'Email already exists.';
+                return res.status(400).json(errors);
             }
 
             const avatar = gravatar.url(req.body.email, {
@@ -46,13 +55,19 @@ router.post('/register', (req, res) => {
 // @desc    Allows a registered user to login / Returns Token
 // @access  Public
 router.post('/login', (req, res) => {
+    const { errors, isValid } = loginValidation(req.body);
+    if (!isValid) {
+        return res.status(400).json(errors);
+    }
+
     const email = req.body.email
     const pwd = req.body.password
     User
         .findOne({ email })
         .then(user => {
             if (!user) {
-                return res.status(404).json({ email: 'User not found.' });
+                error.email = 'User not found.'
+                return res.status(404).json(errors);
             }
 
             bcrypt
@@ -69,7 +84,8 @@ router.post('/login', (req, res) => {
                             res.json({ access_token: token, token_type: 'Bearer', expires_in: expireTime });
                         });
                     } else {
-                        return res.status(403).json({ password: 'Password incorrect.' });
+                        errors.password = 'Password incorrect.'
+                        return res.status(403).json(errors);
                     }
                 });
         });
