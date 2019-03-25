@@ -13,8 +13,7 @@ module.exports = passport => {
             .then(user => {
                 if (user) {
                     var newUser = user.toObject();
-                    newUser.id = newUser._id;
-                    const { password, __v, _id, ...trimUser } = newUser;
+                    const { password, ...trimUser } = newUser;
                     return done(null, trimUser);
                 }
 
