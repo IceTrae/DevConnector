@@ -4,6 +4,7 @@ const Profile = require('../../models/Profile');
 const passport = require('passport');
 
 const profileValidation = require('../../validation/profile');
+const experienceValidation = require('../../validation/experience');
 
 
 
@@ -156,10 +157,10 @@ router.put('/', passport.authenticate('jwt', { session: false }), (req, res) => 
 router.post('/experience', passport.authenticate('jwt', { session: false }), (req, res) => {
     const { user } = req;
     const { ...fields } = req.body;
-    // const { errors, isValid } = profileValidation(fields);
-    // if (!isValid) {
-    //     return res.status(400).json(errors);
-    // }
+    const { errors, isValid } = experienceValidation(fields);
+    if (!isValid) {
+        return res.status(400).json(errors);
+    }
 
     Profile
         .findOne({ user: user._id })
@@ -169,22 +170,8 @@ router.post('/experience', passport.authenticate('jwt', { session: false }), (re
                 return res.status(404).json(errors);
             }
 
-            const newExp = new Profile({
-                user: user._id,
-                ...fields
-            });
-
-            Profile.findOne({ handle: fields.handle })
-                .then(profile => {
-                    if (profile) {
-                        errors.handle = 'that handle already exits';
-                        return res.status(400).json(errors);
-                    }
-
-                    newProfile.save()
-                        .then(profile => { res.json(profile) })
-                        .catch(err => console.log(err));
-                });
+            profile.experience.unshift(fields);
+            profile.save().then(profile => res.json(profile));
         });
 });
 
