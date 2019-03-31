@@ -5,6 +5,7 @@ const passport = require('passport');
 
 const profileValidation = require('../../validation/profile');
 const experienceValidation = require('../../validation/experience');
+const educationValidation = require('../../validation/education');
 
 
 
@@ -171,6 +172,30 @@ router.post('/experience', passport.authenticate('jwt', { session: false }), (re
             }
 
             profile.experience.unshift(fields);
+            profile.save().then(profile => res.json(profile));
+        });
+});
+
+// @route   POST api/profile/education
+// @desc    Create new education entry on the current users profile
+// @access  Private
+router.post('/education', passport.authenticate('jwt', { session: false }), (req, res) => {
+    const { user } = req;
+    const { ...fields } = req.body;
+    const { errors, isValid } = educationValidation(fields);
+    if (!isValid) {
+        return res.status(400).json(errors);
+    }
+
+    Profile
+        .findOne({ user: user._id })
+        .then(profile => {
+            if (!profile) {
+                errors.user = 'Profile not found.';
+                return res.status(404).json(errors);
+            }
+
+            profile.education.unshift(fields);
             profile.save().then(profile => res.json(profile));
         });
 });
