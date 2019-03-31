@@ -176,6 +176,35 @@ router.post('/experience', passport.authenticate('jwt', { session: false }), (re
         });
 });
 
+// @route   DELETE api/profile/experience/:id
+// @desc    Delete experience entry on the current users profile
+// @access  Private
+router.delete('/experience/:id', passport.authenticate('jwt', { session: false }), (req, res) => {
+    const { user } = req;
+    const errors = {};
+
+    Profile
+        .findOne({ user: user._id })
+        .then(profile => {
+            if (!profile) {
+                errors.user = 'Profile not found.';
+                return res.status(404).json(errors);
+            }
+
+            const removeIndex = profile.experience
+                .map(item => item.id)
+                .indexOf(req.params.id);
+
+            if (removeIndex < 0) {
+                errors.user = 'Experience not found.';
+                return res.status(404).json(errors);
+            }
+
+            profile.experience.splice(removeIndex, 1);
+            profile.save().then(profile => res.json(profile));
+        });
+});
+
 // @route   POST api/profile/education
 // @desc    Create new education entry on the current users profile
 // @access  Private
@@ -196,6 +225,37 @@ router.post('/education', passport.authenticate('jwt', { session: false }), (req
             }
 
             profile.education.unshift(fields);
+            profile.save().then(profile => res.json(profile));
+        });
+});
+
+
+
+// @route   DELETE api/profile/education/:id
+// @desc    Delete experience entry on the current users profile
+// @access  Private
+router.delete('/education/:id', passport.authenticate('jwt', { session: false }), (req, res) => {
+    const { user } = req;
+    const errors = {};
+
+    Profile
+        .findOne({ user: user._id })
+        .then(profile => {
+            if (!profile) {
+                errors.user = 'Profile not found.';
+                return res.status(404).json(errors);
+            }
+
+            const removeIndex = profile.education
+                .map(item => item.id)
+                .indexOf(req.params.id);
+
+            if (removeIndex < 0) {
+                errors.user = 'Education not found.';
+                return res.status(404).json(errors);
+            }
+
+            profile.education.splice(removeIndex, 1);
             profile.save().then(profile => res.json(profile));
         });
 });
