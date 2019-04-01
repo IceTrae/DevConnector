@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Profile = require('../../models/Profile');
+const User = require('../../models/User');
 const passport = require('passport');
 
 const profileValidation = require('../../validation/profile');
@@ -257,6 +258,23 @@ router.delete('/education/:id', passport.authenticate('jwt', { session: false })
 
             profile.education.splice(removeIndex, 1);
             profile.save().then(profile => res.json(profile));
+        });
+});
+
+// @route   DELETE api/profile
+// @desc    Delete user and profile
+// @access  Private
+router.delete('/', passport.authenticate('jwt', { session: false }), (req, res) => {
+    const { user } = req;
+
+    Profile
+        .findOneAndDelete({ user: user._id })
+        .then(profile => {
+            User
+                .findOneAndDelete({ _id: user._id })
+                .then(user => {
+                    res.sendStatus(204);
+                });
         });
 });
 
