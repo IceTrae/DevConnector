@@ -60,14 +60,16 @@ router.post('/login', (req, res) => {
         return res.status(400).json(errors);
     }
 
-    const email = req.body.email
-    const pwd = req.body.password
+    const email = req.body.email;
+    const pwd = req.body.password;
+    let error = {};
+    console.log(email)
     User
         .findOne({ email })
         .then(user => {
             if (!user) {
                 error.email = 'User not found.'
-                return res.status(404).json(errors);
+                return res.status(404).json(error);
             }
 
             bcrypt
@@ -88,6 +90,9 @@ router.post('/login', (req, res) => {
                         return res.status(403).json(errors);
                     }
                 });
+        })
+        .catch(err => {
+            console.log(err);
         });
 });
 

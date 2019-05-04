@@ -30,7 +30,7 @@ router.get('/:id', (req, res) => {
 });
 
 // @route   POST api/posts
-// @desc    Post a post
+// @desc    Create a post
 // @access  Private
 router.post('/', passport.authenticate('jwt', { session: false }), (req, res) => {
     const { user } = req;
@@ -58,7 +58,6 @@ router.post('/', passport.authenticate('jwt', { session: false }), (req, res) =>
 // @access  Private
 router.delete('/:id', passport.authenticate('jwt', { session: false }), (req, res) => {
     const { user } = req;
-
     Post
         .findById(req.params.id)
         .then(post => {
@@ -68,6 +67,59 @@ router.delete('/:id', passport.authenticate('jwt', { session: false }), (req, re
 
             post.remove().then(() => res.sendStatus(204));
         });
+
+});
+
+// @route   PUT api/posts/like/:id
+// @desc    Like a post
+// @access  Private
+router.put('/like/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const { user } = req;
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) {
+            return res.sendStatus(404);
+        }
+
+        const likeIndex = post.likes.map(like => like.user._id.toString()).indexOf(req.user._id.toString());
+        if (likeIndex >= 0) {
+            return res.sendStatus(204);
+        } else {
+            post.likes.unshift({ user: req.user });
+        }
+
+        await post.save();
+        res.json(post.likes);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error')
+    }
+});
+
+// @route   PUT api/posts/unlike/:id
+// @desc    Unlike a post
+// @access  Private
+router.put('/unlike/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const { user } = req;
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) {
+            return res.sendStatus(404);
+        }
+
+        const likeIndex = post.likes.map(like => like.user._id.toString()).indexOf(req.user._id.toString());
+        if (likeIndex >= 0) {
+            post.likes.splice(likeIndex, 1);
+        } else {
+            return res.sendStatus(204);
+        }
+
+        await post.save();
+        res.json(post.likes);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error')
+    }
 });
 
 module.exports = router
