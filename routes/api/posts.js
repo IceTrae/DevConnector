@@ -4,6 +4,7 @@ const Post = require('../../models/Post');
 const passport = require('passport');
 
 const postValidation = require('../../validation/post');
+const postCommentValidation = require('../../validation/postComment');
 
 // @route   Get api/posts
 // @desc    Get all posts
@@ -120,6 +121,61 @@ router.put('/unlike/:id', passport.authenticate('jwt', { session: false }), asyn
         console.error(err.message);
         res.status(500).send('Server Error')
     }
+});
+
+// @route   POST api/posts/:id/comment
+// @desc    Create a comment on a post
+// @access  Private
+router.post('/:id/comment', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const { user } = req;
+    const { ...fields } = req.body;
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+        return res.sendStatus(404);
+    }
+
+    const comment = {
+        user: user._id,
+        name: user.name,
+        avatar: user.avatar,
+        ...fields
+    };
+
+    const { errors, isValid } = postCommentValidation(comment);
+    if (!isValid) {
+        return res.status(400).json(errors);
+    }
+
+    post.comments.unshift(comment);
+    post.save()
+        .then(post => { res.json(post.comments) })
+        .catch(err => console.log(err));
+});
+
+// @route   Delete api/posts/:id/comment/:commentId
+// @desc    Delete a comment on a post
+// @access  Private
+router.delete('/:id/comment/:commentId', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const { user } = req;
+    const { ...fields } = req.body;
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+        return res.status(404).send("Post not found.");
+    }
+
+    let commentIndex = post.comments.map(comment => comment._id.toString()).indexOf(req.params.commentId);
+    if (commentIndex < 0) {
+        return res.status(404).send('Comment not found.');
+    }
+
+    if (post.comments[commentIndex].user._id.toString() !== user._id.toString()) {
+        return sendStatus(401);
+    }
+
+    post.comments.splice(commentIndex, 1);
+    post.save()
+        .then(post => { res.json(post.comments) })
+        .catch(err => console.log(err));
 });
 
 module.exports = router
