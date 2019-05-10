@@ -85,3 +85,5 @@ typings/
 .dynamodb/
 
 devconnector_html_theme
+
+.DS_Store
