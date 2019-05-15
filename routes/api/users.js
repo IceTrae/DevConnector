@@ -88,41 +88,40 @@ router.post("/login", async (req, res) => {
   const email = req.body.email;
   const pwd = req.body.password;
   let error = {};
-  User.findOne({ email })
-    .then(user => {
-      if (!user) {
-        error.email = "User not found.";
-        return res.status(404).json(error);
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      error.email = "Invalid credentials.";
+      return res.status(401).json(error);
+    }
+
+    const isMatch = await bcrypt.compare(pwd, user.password);
+    if (!isMatch) {
+      error.email = "Invalid credentials.";
+      return res.status(401).json(error);
+    }
+
+    const payload = {
+      user: {
+        id: user.id
       }
+    };
 
-      bcrypt.compare(pwd, user.password).then(isMatch => {
-        if (isMatch) {
-          const payload = {
-            user: {
-              id: user.id
-            }
-          };
-
-          const expireTime = 7200;
-          jwt.sign(
-            payload,
-            process.env.AUTH_SECRET,
-            { expiresIn: expireTime },
-            (err, token) => {
-              res.json({
-                token: token
-              });
-            }
-          );
-        } else {
-          errors.password = "Password incorrect.";
-          return res.status(401).json(errors);
-        }
-      });
-    })
-    .catch(err => {
-      console.log(err);
-    });
+    const expireTime = 7200;
+    jwt.sign(
+      payload,
+      process.env.AUTH_SECRET,
+      { expiresIn: expireTime },
+      (err, token) => {
+        res.json({
+          token: token
+        });
+      }
+    );
+  } catch (err) {
+    console.error(err);
+    return res.sendStatus(401);
+  }
 });
 
 module.exports = router;
