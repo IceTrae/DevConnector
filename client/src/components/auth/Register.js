@@ -1,7 +1,11 @@
 import React, { Fragment, useState } from "react";
-import axios from "axios";
+import { connect } from "react-redux";
+import { Link, Redirect } from "react-router-dom";
+import { setAlert } from "../../actions/alert";
+import { register } from "../../actions/auth";
+import PropTypes from "prop-types";
 
-const Register = () => {
+const Register = ({ setAlert, register, isAuthenticated }) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -16,43 +20,25 @@ const Register = () => {
   const onSubmit = async e => {
     e.preventDefault();
     if (password !== password2) {
-      console.log("Error passwords do not match");
+      setAlert("Error passwords do not match", "danger");
       return;
     }
 
-    console.log(formData);
-    const newUser = {
-      name,
-      email,
-      password
-    };
-
-    try {
-      const config = {
-        headers: {
-          "Content-Type": "application/json"
-        }
-      };
-
-      const res = await axios.post(
-        "/api/users/register",
-        JSON.stringify(newUser),
-        config
-      );
-      console.log(res.data);
-    } catch (err) {
-      console.log(err);
-    }
+    register({ name, email, password });
   };
+
+  if (isAuthenticated) {
+    return <Redirect to="/dashboard" />;
+  }
 
   return (
     <Fragment>
-      <h1 class="large text-primary">Sign Up</h1>
-      <p class="lead">
-        <i class="fas fa-user" /> Create Your Account
+      <h1 className="large text-primary">Sign Up</h1>
+      <p className="lead">
+        <i className="fas fa-user" /> Create Your Account
       </p>
-      <form class="form" onSubmit={e => onSubmit(e)}>
-        <div class="form-group">
+      <form className="form" onSubmit={e => onSubmit(e)}>
+        <div className="form-group">
           <input
             type="text"
             placeholder="Name"
@@ -62,7 +48,7 @@ const Register = () => {
             required
           />
         </div>
-        <div class="form-group">
+        <div className="form-group">
           <input
             type="email"
             placeholder="Email Address"
@@ -71,12 +57,12 @@ const Register = () => {
             onChange={e => onChange(e)}
             required
           />
-          <small class="form-text">
+          <small className="form-text">
             This site uses Gravatar so if you want a profile image, use a
             Gravatar email
           </small>
         </div>
-        <div class="form-group">
+        <div className="form-group">
           <input
             type="password"
             placeholder="Password"
@@ -86,7 +72,7 @@ const Register = () => {
             minLength="6"
           />
         </div>
-        <div class="form-group">
+        <div className="form-group">
           <input
             type="password"
             placeholder="Confirm Password"
@@ -96,13 +82,26 @@ const Register = () => {
             onChange={e => onChange(e)}
           />
         </div>
-        <input type="submit" class="btn btn-primary" value="Register" />
+        <input type="submit" className="btn btn-primary" value="Register" />
       </form>
-      <p class="my-1">
-        Already have an account? <a href="login.html">Sign In</a>
+      <p className="my-1">
+        Already have an account? <Link to="/login">Sign In</Link>
       </p>
     </Fragment>
   );
 };
 
-export default Register;
+Register.propTypes = {
+  setAlert: PropTypes.func.isRequired,
+  register: PropTypes.func.isRequired,
+  isAuthenticated: PropTypes.bool
+};
+
+const mapStateToProps = state => ({
+  isAuthenticated: state.auth.isAuthenticated
+});
+
+export default connect(
+  mapStateToProps,
+  { setAlert, register }
+)(Register);
