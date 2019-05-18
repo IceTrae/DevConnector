@@ -4,7 +4,8 @@ import {
   USER_LOADED,
   AUTH_ERROR,
   LOGIN_SUCCESS,
-  LOGIN_FAIL
+  LOGIN_FAIL,
+  LOGOUT
 } from "./types";
 import { setAlert } from "./alert";
 import getBaseHeaders from "../utils/baseHeaders";
@@ -99,4 +100,8 @@ export const login = (email, password) => async dispatch => {
   } catch (err) {
     dispatch({ type: LOGIN_FAIL });
   }
+};
+
+export const logout = () => dispatch => {
+  dispatch({ type: LOGOUT });
 };
