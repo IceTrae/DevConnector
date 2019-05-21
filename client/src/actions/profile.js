@@ -35,3 +35,37 @@ export const getCurrentProfile = () => async dispatch => {
     });
   }
 };
+
+export const createProfile = (
+  formData,
+  history,
+  edit = false
+) => async dispatch => {
+  const config = {
+    method: edit ? "PUT" : "POST",
+    headers: getBaseHeaders(localStorage.token),
+    body: JSON.stringify(formData)
+  };
+
+  try {
+    const res = await fetch("/api/profile", config);
+    const data = await res.json();
+    if (!res.ok) {
+      const errors = data.errors;
+      if (errors) {
+        errors.map(error => dispatch(setAlert(error.msg, "danger")));
+      }
+
+      dispatch({
+        type: PROFILE_ERROR,
+        data: { msg: res.statusText, status: res.status }
+      });
+      return;
+    }
+
+    dispatch({
+      type: GET_PROFILE,
+      data
+    });
+  } catch (err) {}
+};
