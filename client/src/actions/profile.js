@@ -36,7 +36,7 @@ export const getCurrentProfile = () => async dispatch => {
   }
 };
 
-export const createProfile = (
+export const saveProfile = (
   formData,
   history,
   edit = false
@@ -46,7 +46,7 @@ export const createProfile = (
     headers: getBaseHeaders(localStorage.token),
     body: JSON.stringify(formData)
   };
-
+  console.log("submit action");
   try {
     const res = await fetch("/api/profile", config);
     const data = await res.json();
@@ -67,5 +67,14 @@ export const createProfile = (
       type: GET_PROFILE,
       data
     });
-  } catch (err) {}
+    dispatch(setAlert(edit ? "Profile Updated" : "Profile Created"));
+    if (!edit) {
+      history.push("/dashboard");
+    }
+  } catch (err) {
+    dispatch({
+      type: PROFILE_ERROR,
+      data: { msg: err.response.statusText, status: err.response.status }
+    });
+  }
 };
