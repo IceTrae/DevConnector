@@ -27,24 +27,6 @@ router.get("/", (req, res) => {
     .catch(err => res.status(404));
 });
 
-// @route   Get api/profile/handle/:handle
-// @desc    Get profile by handle
-// @access  Public
-router.get("/handle/:handle", (req, res) => {
-  const errors = {};
-  Profile.findOne({ handle: req.params.handle })
-    .populate("user", ["name", "avatar"])
-    .then(profile => {
-      if (!profile) {
-        errors.noProfile = "There is no profile for this user";
-        res.status(404).json(errors);
-      }
-
-      res.json(profile);
-    })
-    .catch(err => res.status(404));
-});
-
 // @route   Get api/profile/user/:id
 // @desc    Get profile by id
 // @access  Public
@@ -87,43 +69,61 @@ router.get("/current", auth, async (req, res) => {
 // @access  Private
 router.post(
   "/",
-  passport.authenticate("jwt", { session: false }),
-  (req, res) => {
-    const { user } = req;
-    const { ...profileFields } = req.body;
-    if (profileFields.skills && typeof profileFields.skills === String) {
-      profileFields.skills = profileFields.skills.split(",").map(i => i.trim());
-    }
-    const { errors, isValid } = profileValidation(profileFields);
-    if (!isValid) {
-      return res.status(400).json(errors);
+  [
+    auth,
+    [
+      check("status", "Status field is required")
+        .not()
+        .isEmpty(),
+      check("skills", "Skills field is required")
+        .not()
+        .isEmpty(),
+      check("website", "Website must be a valid url").isURL(),
+      check("youtube", "YouTube profile must be a valid url").isURL(),
+      check("twitter", "Twitter profile must be a valid url").isURL(),
+      check("facebook", "Facebook profile must be a valid url").isURL(),
+      check("linkedin", "LinkedIn Profile must be a valid url").isURL(),
+      check("instagram", "Instagram profile must be a valid url").isURL()
+    ]
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    Profile.findOne({ user: user._id }).then(profile => {
+    const data = req.body;
+    if (data.skills && typeof data.skills === String) {
+      data.skills = data.skills.split(",").map(s => s.trim());
+    }
+
+    data.social = {
+      youtube: data.youtube,
+      twitter: data.twitter,
+      facebook: data.facebook,
+      linkedin: data.linkedin,
+      instagram: data.instagram
+    };
+
+    try {
+      const profile = await Profile.findOne({ user: req.user.id });
       if (profile) {
-        errors.user = "Profile already exists.";
-        return res.status(400).json(errors);
+        return res
+          .status(400)
+          .json({ errors: [{ msg: "Profile already exists." }] });
       }
 
       const newProfile = new Profile({
-        user: user._id,
-        ...profileFields
+        user: req.user.id,
+        ...data
       });
 
-      Profile.findOne({ handle: profileFields.handle }).then(profile => {
-        if (profile) {
-          errors.handle = "that handle already exits";
-          return res.status(400).json(errors);
-        }
-
-        newProfile
-          .save()
-          .then(profile => {
-            res.json(profile);
-          })
-          .catch(err => console.log(err));
-      });
-    });
+      await newProfile.save();
+      res.status(201).json(newProfile);
+    } catch (err) {
+      console.error(err.message);
+      res.sendStatus(500);
+    }
   }
 );
 
